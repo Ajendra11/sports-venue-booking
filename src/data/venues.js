@@ -1,48 +1,42 @@
-import dhukuFutsalImg from "../assets/ajen.jpg";
-import ktmBadmintonImg from "../assets/ktm-badminton.jpg";
-import gaaBasketballImg from "../assets/gaa-basketball.jpg";
-import dasrathTennisImg from "../assets/dasrath-tennis.jpg";
-import activeSwimmingImg from "../assets/active-swimming.jpg";
-
 export const sampleVenues = [
   {
     id: 1,
-    name: "Dhuku Futsal Hub",
+    name: "Apex Futsal Arena",
     sportType: "Futsal",
-    location: "Maharajgunj, Kathmandu",
-    pricePerHour: 1500,
-    imageUrl: dhukuFutsalImg
+    location: "Downtown Sports Complex",
+    pricePerHour: 45,
+    imageUrl: "https://images.unsplash.com/photo-1575361204480-aadea25e6e68?w=500&auto=format&fit=crop&q=60" // Placeholder
   },
   {
     id: 2,
-    name: "Kathmandu Badminton Academy",
+    name: "Smash Smash Badminton Club",
     sportType: "Badminton",
-    location: "New Baneshwor, Kathmandu",
-    pricePerHour: 800,
-    imageUrl: ktmBadmintonImg
+    location: "Northside Hub",
+    pricePerHour: 20,
+    imageUrl: "https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?w=500&auto=format&fit=crop&q=60"
   },
   {
     id: 3,
-    name: "GAA Hall",
+    name: "Net Rippers Basketball Court",
     sportType: "Basketball",
-    location: "Thamel, Kathmandu",
-    pricePerHour: 1200,
-    imageUrl: gaaBasketballImg
+    location: "Downtown Sports Complex",
+    pricePerHour: 35,
+    imageUrl: "https://images.unsplash.com/photo-1544698310-74ea9d1c8258?w=500&auto=format&fit=crop&q=60"
   },
   {
     id: 4,
-    name: "Dasrath Stadium Tennis Court",
+    name: "Deuce Tennis Center",
     sportType: "Tennis",
-    location: "Tripureshowr, Kathmandu",
-    pricePerHour: 1000,
-    imageUrl: dasrathTennisImg
+    location: "West End Park",
+    pricePerHour: 40,
+    imageUrl: "https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?w=500&auto=format&fit=crop&q=60"
   },
   {
     id: 5,
-    name: "Active Sports Complex",
+    name: "Olympic Splash Pool",
     sportType: "Swimming",
-    location: "Dholahiti, Lalitpur",
-    pricePerHour: 500,
-    imageUrl: activeSwimmingImg
+    location: "East Coast Aquatic Center",
+    pricePerHour: 50,
+    imageUrl: "https://images.unsplash.com/photo-1576013551627-0cc20b96c2a7?w=500&auto=format&fit=crop&q=60"
   }
 ];
