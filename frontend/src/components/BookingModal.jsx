@@ -15,8 +15,9 @@ export default function BookingModal({ venue, onClose, onBookSuccess }) {
       return;
     }
 
-    // Pass the completed booking object back up to App.jsx
+    // Pass the completed booking object back up to App.jsx with a unique id
     onBookSuccess({
+      id: `booking-${Date.now()}`, // Added unique id requirement for Week 3 cancellation feature
       venueId: venue.id,
       venueName: venue.name,
       date,
