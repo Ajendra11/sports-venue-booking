@@ -1,42 +1,52 @@
 import React, { useState, useEffect } from 'react'; 
-import { sampleVenues } from './data/venues';
 import VenueCard from './components/VenueCard';
 import BookingModal from './components/BookingModal';
 import AddVenueModal from './components/AddVenueModal'; 
+import EditVenueModal from './components/EditVenueModal'; // New Import
+
+// Points cleanly to your exact backend route listener
+const API_BASE_URL = 'http://localhost:3000/api/venues';
 
 export default function App() {
-  // --- STATE HOOKS (With LocalStorage Fallbacks) ---
-  const [venuesList, setVenuesList] = useState(() => {
-    const savedVenues = localStorage.getItem('hk_venues');
-    return savedVenues ? JSON.parse(savedVenues) : sampleVenues;
-  }); 
-
-  const [myBookings, setMyBookings] = useState(() => {
-    const savedBookings = localStorage.getItem('hk_bookings');
-    return savedBookings ? JSON.parse(savedBookings) : [];
-  });
+  // --- STATE HOOKS ---
+  const [venuesList, setVenuesList] = useState([]); 
+  const [myBookings, setMyBookings] = useState([]); 
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false); 
+  const [selectedVenueForEdit, setSelectedVenueForEdit] = useState(null); // Tracks edit modal target
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSport, setSelectedSport] = useState('All');
   const [selectedVenueForBooking, setSelectedVenueForBooking] = useState(null);
 
-  // --- EFFECT 1: VIVA TAB TITLE SYNC ---
+  // --- EFFECT 1: FETCH ---
   useEffect(() => {
-    if (myBookings.length > 0) {
-      document.title = `🏟️ Sports App (${myBookings.length} Bookings)`;
-    } else {
-      document.title = "🏟️ Sports Booking WebApp";
-    }
-  }, [myBookings]);
+    const fetchVenues = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        
+        const response = await fetch(API_BASE_URL);
+        if (!response.ok) throw new Error(`Server returned status code ${response.status}`);
 
-  // --- EFFECT 2: DATA PERSISTENCE SIDE EFFECT ---
-  useEffect(() => {
-    localStorage.setItem('hk_venues', JSON.stringify(venuesList));
-  }, [venuesList]);
+        const data = await response.json();
+        setVenuesList(data);
+      } catch (err) {
+        console.error("API Fetch Error:", err);
+        setError(err.message || "Failed to sync with backend server database.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchVenues();
+  }, []);
 
+  // --- EFFECT 2: TAB TITLE SYNC ---
   useEffect(() => {
-    localStorage.setItem('hk_bookings', JSON.stringify(myBookings));
+    document.title = myBookings.length > 0 
+      ? `🏟️ Sports App (${myBookings.length} Bookings)` 
+      : "🏟️ Sports Booking WebApp";
   }, [myBookings]);
 
   // --- DERIVED STATES ---
@@ -52,24 +62,95 @@ export default function App() {
 
   // --- HANDLERS ---
   const handleBookingSuccess = (newBooking) => {
-    setMyBookings([...myBookings, newBooking]);
+    const bookingWithId = { ...newBooking, id: newBooking.id || `book-${Date.now()}` };
+    setMyBookings([...myBookings, bookingWithId]);
     setSelectedVenueForBooking(null);
-    alert(`🎉 Booking Confirmed for ${newBooking.venueName}!`);
+    alert(`🎉 Booking Confirmed for ${bookingWithId.venueName}!`);
   };
 
-  const handleAddVenueSuccess = (newVenue) => {
-    setVenuesList([newVenue, ...venuesList]); 
-    setIsAddModalOpen(false); 
-    alert(`🏟️ "${newVenue.name}" successfully added!`);
-  };
+  const handleAddVenueSuccess = async (newVenue) => {
+    try {
+      const response = await fetch(API_BASE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newVenue)
+      });
 
-  // --- NEW HANDLER FOR WEEK 3: CANCELLATION ---
-  const handleCancelBooking = (bookingId) => {
-    if (window.confirm("Are you sure you want to cancel this booking?")) {
-      const updatedBookings = myBookings.filter(b => b.id !== bookingId);
-      setMyBookings(updatedBookings);
+      if (!response.ok) throw new Error('Failed to save new venue entry');
+      
+      const savedVenue = await response.json();
+      setVenuesList([savedVenue, ...venuesList]); 
+      setIsAddModalOpen(false); 
+      alert(`🏟️ "${savedVenue.name}" successfully committed to Database!`);
+    } catch (err) {
+      alert(`❌ Facility insertion error: ${err.message}`);
     }
   };
+
+  // --- NEW: EDIT VENUE PUT HANDLER ---
+  const handleEditVenueSuccess = async (venueId, updatedData) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/${venueId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedData)
+      });
+
+      if (!response.ok) throw new Error('Failed to save edits to server database');
+
+      const updatedVenue = await response.json();
+      
+      // Map existing records to replace only the edited one in local state
+      setVenuesList(venuesList.map(v => (v._id || v.id) === venueId ? updatedVenue : v));
+      setSelectedVenueForEdit(null); // Close the modal
+      alert(`🏟️ "${updatedVenue.name}" changes saved successfully!`);
+    } catch (err) {
+      alert(`❌ Update execution failed: ${err.message}`);
+    }
+  };
+
+  const handleDeleteVenue = async (venueId) => {
+    if (!window.confirm("Are you sure you want to permanently delete this venue from the database?")) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/${venueId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) throw new Error('Failed to delete venue from backend API');
+
+      setVenuesList(venuesList.filter(v => (v._id || v.id) !== venueId));
+      alert("🗑️ Venue successfully deleted from Database!");
+    } catch (err) {
+      alert(`❌ Error deleting venue: ${err.message}`);
+    }
+  };
+
+  const handleCancelBooking = (bookingId) => {
+    if (window.confirm("Are you sure you want to cancel this booking?")) {
+      setMyBookings(myBookings.filter(b => b.id !== bookingId));
+    }
+  };
+
+  // --- LOADER & ERROR LAYOUTS ---
+  if (isLoading) return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <p className="text-lg font-bold text-gray-500 animate-pulse">⚡ Synchronizing with Backend Database Server...</p>
+    </div>
+  );
+
+  if (error) return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+      <div className="bg-red-50 border border-red-200 p-6 rounded-xl max-w-md text-center">
+        <span className="text-3xl">⚠️</span>
+        <h3 className="text-lg font-bold text-red-800 mt-2">Database Connection Failed</h3>
+        <p className="text-sm text-red-600 mt-1">{error}</p>
+        <p className="text-xs text-gray-400 mt-4 font-mono">Verify your Node.js backend app server is running on port 3000</p>
+      </div>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900">
@@ -78,10 +159,9 @@ export default function App() {
       <header className="bg-blue-600 text-white py-6 shadow-md">
         <div className="container mx-auto px-4 max-w-6xl flex flex-col sm:flex-row items-center justify-between gap-2">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Sports Booking WebApp</h1>
-            <p className="text-xs text-blue-100 mt-0.5">Find and reserve local sports venues instantly</p>
+            <h1 className="text-2xl font-bold tracking-tight">Sports Booking Fullstack WebApp</h1>
+            <p className="text-xs text-blue-100 mt-0.5">Live Database Integrated Management Environment</p>
           </div>
-          
           <button 
             onClick={() => setIsAddModalOpen(true)}
             className="bg-white hover:bg-gray-100 text-blue-600 font-bold text-xs px-4 py-2 rounded-lg shadow-sm transition-colors border border-blue-100"
@@ -97,7 +177,7 @@ export default function App() {
         {/* Active Bookings Summary Section */}
         {myBookings.length > 0 && (
           <div className="mb-8 bg-emerald-50 border border-emerald-200 rounded-xl p-5">
-            <h3 className="text-sm font-bold text-emerald-800 uppercase tracking-wide mb-3">🗓️ Your Active Bookings ({myBookings.length})</h3>
+            <h3 className="text-sm font-bold text-emerald-800 uppercase tracking-wide mb-3">🗓️ Active Bookings ({myBookings.length})</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {myBookings.map((b) => (
                 <div key={b.id} className="bg-white p-3 rounded-lg shadow-sm border border-emerald-100 text-xs flex justify-between items-center">
@@ -110,7 +190,6 @@ export default function App() {
                     <button 
                       onClick={() => handleCancelBooking(b.id)}
                       className="text-red-500 hover:text-red-700 hover:bg-red-50 p-1 rounded font-bold"
-                      title="Cancel Booking"
                     >
                       ❌
                     </button>
@@ -159,10 +238,12 @@ export default function App() {
         {filteredVenues.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredVenues.map(venue => (
-              <div key={venue.id} className="flex">
+              <div key={venue._id || venue.id} className="flex">
                 <VenueCard 
                   venue={venue} 
                   onBookClick={(v) => setSelectedVenueForBooking(v)} 
+                  onDeleteClick={(id) => handleDeleteVenue(id)}
+                  onEditClick={(v) => setSelectedVenueForEdit(v)} // Added prop handler
                 />
               </div>
             ))}
@@ -188,6 +269,15 @@ export default function App() {
         <AddVenueModal 
           onClose={() => setIsAddModalOpen(false)}
           onAddSuccess={handleAddVenueSuccess}
+        />
+      )}
+
+      {/* New: Render Edit Modal */}
+      {selectedVenueForEdit && (
+        <EditVenueModal 
+          venue={selectedVenueForEdit}
+          onClose={() => setSelectedVenueForEdit(null)}
+          onEditSuccess={handleEditVenueSuccess}
         />
       )}
     </div>

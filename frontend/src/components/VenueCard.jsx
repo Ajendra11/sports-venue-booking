@@ -1,6 +1,8 @@
 import React from "react";
 
-export default function VenueCard({ venue, onBookClick }) {
+export default function VenueCard({ venue, onBookClick, onDeleteClick, onEditClick }) {
+  const venueId = venue._id || venue.id;
+
   return (
     <div className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200 hover:shadow-lg transition-shadow duration-300 flex flex-col h-full w-full">
 
@@ -30,18 +32,39 @@ export default function VenueCard({ venue, onBookClick }) {
           </p>
         </div>
 
-        <div className="mt-auto flex items-center justify-between border-t border-gray-100 pt-4">
-          <span className="text-lg font-extrabold text-blue-600">
+        <div className="mt-auto flex items-center justify-between border-t border-gray-100 pt-4 gap-2">
+          <span className="text-lg font-extrabold text-blue-600 whitespace-nowrap">
             Rs. {venue.pricePerHour}
             <span className="text-xs font-normal text-gray-500"> / hr</span>
           </span>
 
-          <button 
-            onClick={() => onBookClick(venue)}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm"
-          >
-            Book Now
-          </button>
+          <div className="flex items-center gap-1.5">
+            {/* ✏️ Edit Button */}
+            <button 
+              onClick={() => onEditClick(venue)}
+              className="p-2 bg-gray-50 hover:bg-gray-150 text-gray-600 rounded-lg transition-colors border border-gray-200"
+              title="Edit Venue"
+            >
+             EDIT
+            </button>
+
+            {/* 🗑️ Delete Button */}
+            <button 
+              onClick={() => onDeleteClick(venueId)}
+              className="p-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors border border-red-200"
+              title="Delete Venue"
+            >
+              DELETE
+            </button>
+
+            {/* Book Now Button */}
+            <button 
+              onClick={() => onBookClick(venue)}
+              className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm whitespace-nowrap"
+            >
+              Book Now
+            </button>
+          </div>
         </div>
       </div>
 
