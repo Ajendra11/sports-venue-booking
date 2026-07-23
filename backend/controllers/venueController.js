@@ -62,3 +62,19 @@ export const updateVenue = async (req, res) => {
     return res.status(400).json({ error: error.message });
   }
 };
+
+// DELETE / delete venue
+export const deleteVenue = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const deleted = await Venue.findByIdAndDelete(id);
+    
+    if (!deleted) {
+      return res.status(404).json({ error: "Venue not found" });
+    }
+    
+    return res.json({ message: "Venue deleted successfully" });
+  } catch (error) {
+    return res.status(400).json({ error: error.message });
+  }
+};

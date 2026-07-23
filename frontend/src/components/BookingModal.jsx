@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
-export default function BookingModal({ venue, onClose, onBookSuccess }) {
+export default function BookingModal({ venue, onClose, onBookSuccess, isAuthenticated }) {
+  const navigate = useNavigate();
   const [date, setDate] = useState('');
   const [startTime, setStartTime] = useState('');
   const [duration, setDuration] = useState(1); // Default to 1 hour
@@ -10,6 +12,14 @@ export default function BookingModal({ venue, onClose, onBookSuccess }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+
+    if (!isAuthenticated) {
+      alert('Please login to make a booking');
+      onClose();
+      navigate('/login');
+      return;
+    }
+
     if (!date || !startTime) {
       alert("Please select both a date and start time!");
       return;
@@ -17,8 +27,8 @@ export default function BookingModal({ venue, onClose, onBookSuccess }) {
 
     // Pass the completed booking object back up to App.jsx with a unique id
     onBookSuccess({
-      id: `booking-${Date.now()}`, // Added unique id requirement for Week 3 cancellation feature
-      venueId: venue.id,
+      id: `booking-${Date.now()}`,
+      venueId: venue._id || venue.id,
       venueName: venue.name,
       date,
       startTime,
