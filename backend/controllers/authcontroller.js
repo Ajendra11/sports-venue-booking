@@ -1,16 +1,10 @@
 import jwt from 'jsonwebtoken';
 import Auth from '../models/authModel.js';
 
-const cookieOptions = {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === 'production', // Use secure cookies in production // Adjust based on your frontend and backend domains
-  maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-};  
-
-// Generate JWT token
+// Helper to generate JWT token
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET || 'fallback_secret', {
-    expiresIn: '30d'
+    expiresIn: '30d',
   });
 };
 
@@ -35,7 +29,7 @@ export const registerUser = async (req, res) => {
       email: user.email,
       role: user.role,
       phone: user.phone,
-      token: generateToken(user._id)
+      token: generateToken(user._id),
     });
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -48,15 +42,9 @@ export const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Find user and explicitly select password (excluded by default in schema)
+    // Find user and explicitly select password
     const user = await Auth.findOne({ email }).select('+password');
-    if (!user) {
-      return res.status(401).json({ error: 'Invalid email or password' });
-    }
-
-    // Check password using the model's instance method
-    const isPasswordMatch = await user.comparePassword(password);
-    if (!isPasswordMatch) {
+    if (!user || !(await user.comparePassword(password))) {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
 
@@ -66,7 +54,7 @@ export const loginUser = async (req, res) => {
       email: user.email,
       role: user.role,
       phone: user.phone,
-      token: generateToken(user._id)
+      token: generateToken(user._id),
     });
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -84,28 +72,5 @@ export const getMe = async (req, res) => {
     res.json(user);
   } catch (error) {
     res.status(400).json({ error: error.message });
-  }
-};
-
-// @desc    Protect middleware - verify JWT token
-export const protect = async (req, res, next) => {
-  let token;
-
-  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-    try {
-      token = req.headers.authorization.split(' ')[1];
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret');
-      req.user = await Auth.findById(decoded.id);
-      if (!req.user) {
-        return res.status(401).json({ error: 'Not authorized, user not found' });
-      }
-      return next();
-    } catch (error) {
-      return res.status(401).json({ error: 'Not authorized, token failed' });
-    }
-  }
-
-  if (!token) {
-    return res.status(401).json({ error: 'Not authorized, no token provided' });
   }
 };
