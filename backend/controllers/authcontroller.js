@@ -1,6 +1,12 @@
 import jwt from 'jsonwebtoken';
 import Auth from '../models/authModel.js';
 
+const cookieOptions = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production', // Use secure cookies in production // Adjust based on your frontend and backend domains
+  maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+};  
+
 // Generate JWT token
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET || 'fallback_secret', {
