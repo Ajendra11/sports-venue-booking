@@ -9,7 +9,7 @@ export default function VenueCard({ venue, onBookClick, onDeleteClick, onEditCli
       {/* Image Section */}
       <div className="relative w-full h-56 overflow-hidden bg-gray-100">
         <img
-          src={venue.imageUrl}
+          src={venue.imageUrl || "https://images.unsplash.com/photo-1575361204480-aadea25e6e68?w=500&auto=format&fit=crop&q=60"}
           alt={venue.name}
           className="w-full h-full object-cover"
         />

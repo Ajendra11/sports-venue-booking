@@ -1,4 +1,5 @@
-const API_BASE_URL = 'http://localhost:3000/api/auth';
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const API_BASE_URL = `${BASE_URL}/api/auth`;
 
 export const registerUser = async (name, email, password, phone) => {
   try {
@@ -35,6 +36,18 @@ export const loginUser = async (email, password) => {
   } catch (error) {
     console.error('Login error:', error);
     throw error;
+  }
+};
+
+export const logoutUser = async () => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/logout`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    return await response.json();
+  } catch (error) {
+    console.error('Logout error:', error);
   }
 };
 

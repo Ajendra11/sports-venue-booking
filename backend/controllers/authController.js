@@ -8,6 +8,30 @@ const generateToken = (id) => {
   });
 };
 
+// Helper to send token response with JSON and Cookie
+const sendTokenResponse = (user, statusCode, res) => {
+  const token = generateToken(user._id);
+
+  const cookieOptions = {
+    expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+    httpOnly: true,
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    secure: process.env.NODE_ENV === 'production'
+  };
+
+  res
+    .status(statusCode)
+    .cookie('token', token, cookieOptions)
+    .json({
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      phone: user.phone,
+      token,
+    });
+};
+
 // @desc    Register a new user
 // @route   POST /api/auth/register
 export const registerUser = async (req, res) => {
@@ -22,15 +46,7 @@ export const registerUser = async (req, res) => {
 
     // Create new user
     const user = await Auth.create({ name, email, password, phone });
-
-    res.status(201).json({
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      phone: user.phone,
-      token: generateToken(user._id),
-    });
+    sendTokenResponse(user, 201, res);
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
@@ -48,17 +64,20 @@ export const loginUser = async (req, res) => {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
 
-    res.json({
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      phone: user.phone,
-      token: generateToken(user._id),
-    });
+    sendTokenResponse(user, 200, res);
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
+};
+
+// @desc    Logout user / clear cookie
+// @route   POST /api/auth/logout
+export const logoutUser = async (req, res) => {
+  res.cookie('token', 'none', {
+    expires: new Date(Date.now() + 10 * 1000),
+    httpOnly: true,
+  });
+  res.status(200).json({ success: true, message: 'Logged out successfully' });
 };
 
 // @desc    Get current logged-in user profile

@@ -13,6 +13,49 @@ export const getMyBookings = async (req, res) => {
   }
 };
 
+// @desc    Get aggregated booking statistics (Week 4 Aggregation Requirement)
+// @route   GET /api/bookings/stats
+export const getBookingStats = async (req, res) => {
+  try {
+    const stats = await Booking.aggregate([
+      {
+        $match: { status: 'confirmed' }
+      },
+      {
+        $group: {
+          _id: '$venueName',
+          totalBookings: { $sum: 1 },
+          totalRevenue: { $sum: '$totalCost' },
+          avgDuration: { $avg: '$duration' }
+        }
+      },
+      {
+        $sort: { totalRevenue: -1 }
+      }
+    ]);
+
+    const summary = await Booking.aggregate([
+      {
+        $match: { status: 'confirmed' }
+      },
+      {
+        $group: {
+          _id: null,
+          totalBookingsCount: { $sum: 1 },
+          overallRevenue: { $sum: '$totalCost' }
+        }
+      }
+    ]);
+
+    res.json({
+      summary: summary[0] || { totalBookingsCount: 0, overallRevenue: 0 },
+      byVenue: stats
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
 // @desc    Create a new booking
 // @route   POST /api/bookings
 export const createBooking = async (req, res) => {
@@ -66,6 +109,25 @@ export const cancelBooking = async (req, res) => {
     await booking.save();
 
     res.json({ message: 'Booking cancelled successfully', booking });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
+// @desc    Delete a booking permanently
+// @route   DELETE /api/bookings/:id
+export const deleteBooking = async (req, res) => {
+  try {
+    const booking = await Booking.findOneAndDelete({
+      _id: req.params.id,
+      user: req.user._id
+    });
+
+    if (!booking) {
+      return res.status(404).json({ error: 'Booking not found or not authorized' });
+    }
+
+    res.json({ message: 'Booking deleted successfully' });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }

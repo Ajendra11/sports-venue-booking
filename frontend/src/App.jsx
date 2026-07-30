@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext.jsx';
-import { createBooking } from './api/bookingApi.js';
+import { getVenues, createVenue, updateVenue, deleteVenue } from './api/venueApi.js';
+import { getMyBookings, createBooking, cancelBooking, getBookingStats } from './api/bookingApi.js';
 import VenueCard from './components/VenueCard';
 import BookingModal from './components/BookingModal';
 import AddVenueModal from './components/AddVenueModal';
@@ -10,20 +11,59 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import MyBookingsPage from './pages/MyBookingsPage';
 
-// Points cleanly to your exact backend route listener
-const API_BASE_URL = 'http://localhost:3000/api/venues';
-
 // Home page component - venue listing
-function HomePage({ venuesList, setVenuesList, isLoading, error, searchTerm, setSearchTerm, selectedSport, setSelectedSport, sportsTypes, filteredVenues, handleDeleteVenue, setSelectedVenueForBooking, setIsAddModalOpen, setSelectedVenueForEdit, myBookings, handleCancelBooking }) {
+function HomePage({ 
+  venuesList, 
+  setVenuesList, 
+  isLoading, 
+  error, 
+  searchTerm, 
+  setSearchTerm, 
+  selectedSport, 
+  setSelectedSport, 
+  sportsTypes, 
+  filteredVenues, 
+  handleDeleteVenue, 
+  setSelectedVenueForBooking, 
+  setIsAddModalOpen, 
+  setSelectedVenueForEdit, 
+  myBookings, 
+  handleCancelBooking,
+  bookingStats
+}) {
   return (
     <main className="container mx-auto px-4 py-8 max-w-6xl">
+      {/* Booking Aggregation Statistics Banner (Week 4 Feature) */}
+      {bookingStats && bookingStats.summary && bookingStats.summary.totalBookingsCount > 0 && (
+        <div className="mb-8 bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-xl p-5 shadow-md">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+            <div>
+              <span className="text-xs uppercase font-extrabold tracking-wider bg-white/20 px-2.5 py-1 rounded-md">📊 Platform Analytics</span>
+              <h3 className="text-lg font-bold mt-2">Community Booking Overview</h3>
+              <p className="text-xs text-blue-100 mt-0.5">Real-time stats calculated via Mongoose aggregation pipeline</p>
+            </div>
+            <div className="flex items-center gap-6">
+              <div className="text-center">
+                <p className="text-2xl font-black">{bookingStats.summary.totalBookingsCount}</p>
+                <p className="text-xs text-blue-100 uppercase">Bookings</p>
+              </div>
+              <div className="w-px h-8 bg-blue-400"></div>
+              <div className="text-center">
+                <p className="text-2xl font-black">Rs. {bookingStats.summary.overallRevenue}</p>
+                <p className="text-xs text-blue-100 uppercase">Revenue</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Active Bookings Summary Section */}
       {myBookings.length > 0 && (
         <div className="mb-8 bg-emerald-50 border border-emerald-200 rounded-xl p-5">
-          <h3 className="text-sm font-bold text-emerald-800 uppercase tracking-wide mb-3">🗓️ Active Bookings ({myBookings.length})</h3>
+          <h3 className="text-sm font-bold text-emerald-800 uppercase tracking-wide mb-3">🗓️ Your Active Bookings ({myBookings.length})</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {myBookings.map((b) => (
-              <div key={b.id} className="bg-white p-3 rounded-lg shadow-sm border border-emerald-100 text-xs flex justify-between items-center">
+              <div key={b._id || b.id} className="bg-white p-3 rounded-lg shadow-sm border border-emerald-100 text-xs flex justify-between items-center">
                 <div>
                   <p className="font-bold text-gray-800 text-sm">{b.venueName}</p>
                   <p className="text-gray-500 mt-0.5">Date: {b.date} | Time: {b.startTime} ({b.duration} hr)</p>
@@ -31,8 +71,9 @@ function HomePage({ venuesList, setVenuesList, isLoading, error, searchTerm, set
                 <div className="flex items-center gap-3">
                   <span className="font-black text-emerald-600 text-sm bg-emerald-50 px-2.5 py-1 rounded-md">Rs. {b.totalCost}</span>
                   <button 
-                    onClick={() => handleCancelBooking(b.id)}
+                    onClick={() => handleCancelBooking(b._id || b.id)}
                     className="text-red-500 hover:text-red-700 hover:bg-red-50 p-1 rounded font-bold"
+                    title="Cancel Booking"
                   >
                     ❌
                   </button>
@@ -108,6 +149,7 @@ export default function App() {
   // --- STATE HOOKS ---
   const [venuesList, setVenuesList] = useState([]); 
   const [myBookings, setMyBookings] = useState([]); 
+  const [bookingStats, setBookingStats] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -117,17 +159,13 @@ export default function App() {
   const [selectedSport, setSelectedSport] = useState('All');
   const [selectedVenueForBooking, setSelectedVenueForBooking] = useState(null);
 
-  // --- EFFECT 1: FETCH ---
+  // --- EFFECT 1: FETCH VENUES ---
   useEffect(() => {
-    const fetchVenues = async () => {
+    const fetchVenuesData = async () => {
       try {
         setIsLoading(true);
         setError(null);
-        
-        const response = await fetch(API_BASE_URL);
-        if (!response.ok) throw new Error(`Server returned status code ${response.status}`);
-
-        const data = await response.json();
+        const data = await getVenues();
         setVenuesList(data);
       } catch (err) {
         console.error("API Fetch Error:", err);
@@ -136,16 +174,36 @@ export default function App() {
         setIsLoading(false);
       }
     };
-    fetchVenues();
+    fetchVenuesData();
   }, []);
 
+  // --- EFFECT 2: FETCH USER BOOKINGS & STATS ---
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (isAuthenticated && token) {
+        try {
+          const bookingsData = await getMyBookings(token);
+          setMyBookings(bookingsData);
+          const statsData = await getBookingStats(token);
+          setBookingStats(statsData);
+        } catch (err) {
+          console.error("Error loading user bookings or stats:", err);
+        }
+      } else {
+        setMyBookings([]);
+        setBookingStats(null);
+      }
+    };
+    fetchUserData();
+  }, [isAuthenticated, token]);
+
   // --- DERIVED STATES ---
-  const sportsTypes = ['All', ...new Set(venuesList.map(v => v.sportType))];
+  const sportsTypes = ['All', ...new Set(venuesList.map(v => v.sportType).filter(Boolean))];
 
   const filteredVenues = venuesList.filter(venue => {
     const matchesSearch = 
-      venue.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      venue.location.toLowerCase().includes(searchTerm.toLowerCase());
+      (venue.name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+      (venue.location || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesSport = selectedSport === 'All' || venue.sportType === selectedSport;
     return matchesSearch && matchesSport;
   });
@@ -153,7 +211,6 @@ export default function App() {
   // --- HANDLERS ---
   const handleBookingSuccess = async (newBooking) => {
     if (isAuthenticated && token) {
-      // Persist booking to backend via API
       try {
         const savedBooking = await createBooking(token, {
           venueId: newBooking.venueId,
@@ -162,19 +219,17 @@ export default function App() {
           duration: newBooking.duration
         });
         
-        const bookingWithId = { 
-          ...newBooking, 
-          id: savedBooking._id || `book-${Date.now()}`,
-          _id: savedBooking._id
-        };
-        setMyBookings([...myBookings, bookingWithId]);
+        setMyBookings([savedBooking, ...myBookings]);
         setSelectedVenueForBooking(null);
-        alert(`🎉 Booking Confirmed for ${bookingWithId.venueName}!`);
+        alert(`🎉 Booking Confirmed for ${savedBooking.venueName}!`);
+
+        // Refresh stats
+        const updatedStats = await getBookingStats(token);
+        setBookingStats(updatedStats);
       } catch (err) {
         alert(`❌ Booking failed: ${err.message}`);
       }
     } else {
-      // Fallback to local-only booking if not authenticated
       const bookingWithId = { ...newBooking, id: newBooking.id || `book-${Date.now()}` };
       setMyBookings([...myBookings, bookingWithId]);
       setSelectedVenueForBooking(null);
@@ -184,15 +239,7 @@ export default function App() {
 
   const handleAddVenueSuccess = async (newVenue) => {
     try {
-      const response = await fetch(API_BASE_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newVenue)
-      });
-
-      if (!response.ok) throw new Error('Failed to save new venue entry');
-      
-      const savedVenue = await response.json();
+      const savedVenue = await createVenue(newVenue);
       setVenuesList([savedVenue, ...venuesList]); 
       setIsAddModalOpen(false); 
       alert(`🏟️ "${savedVenue.name}" successfully committed to Database!`);
@@ -203,16 +250,7 @@ export default function App() {
 
   const handleEditVenueSuccess = async (venueId, updatedData) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/${venueId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedData)
-      });
-
-      if (!response.ok) throw new Error('Failed to save edits to server database');
-
-      const updatedVenue = await response.json();
-      
+      const updatedVenue = await updateVenue(venueId, updatedData);
       setVenuesList(venuesList.map(v => (v._id || v.id) === venueId ? updatedVenue : v));
       setSelectedVenueForEdit(null);
       alert(`🏟️ "${updatedVenue.name}" changes saved successfully!`);
@@ -227,12 +265,7 @@ export default function App() {
     }
 
     try {
-      const response = await fetch(`${API_BASE_URL}/${venueId}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) throw new Error('Failed to delete venue from backend API');
-
+      await deleteVenue(venueId);
       setVenuesList(venuesList.filter(v => (v._id || v.id) !== venueId));
       alert("🗑️ Venue successfully deleted from Database!");
     } catch (err) {
@@ -240,9 +273,19 @@ export default function App() {
     }
   };
 
-  const handleCancelBooking = (bookingId) => {
+  const handleCancelBooking = async (bookingId) => {
     if (window.confirm("Are you sure you want to cancel this booking?")) {
-      setMyBookings(myBookings.filter(b => b.id !== bookingId));
+      if (isAuthenticated && token) {
+        try {
+          await cancelBooking(token, bookingId);
+          setMyBookings(myBookings.filter(b => (b._id || b.id) !== bookingId));
+          alert("✅ Booking cancelled successfully!");
+        } catch (err) {
+          alert(`❌ Cancel failed: ${err.message}`);
+        }
+      } else {
+        setMyBookings(myBookings.filter(b => (b._id || b.id) !== bookingId));
+      }
     }
   };
 
@@ -264,7 +307,7 @@ export default function App() {
         <span className="text-3xl">⚠️</span>
         <h3 className="text-lg font-bold text-red-800 mt-2">Database Connection Failed</h3>
         <p className="text-sm text-red-600 mt-1">{error}</p>
-        <p className="text-xs text-gray-400 mt-4 font-mono">Verify your Node.js backend app server is running on port 3001</p>
+        <p className="text-xs text-gray-400 mt-4 font-mono">Verify your Node.js backend server is running on port 3000</p>
       </div>
     </div>
   );
@@ -363,6 +406,7 @@ export default function App() {
             setSelectedVenueForEdit={setSelectedVenueForEdit}
             myBookings={myBookings}
             handleCancelBooking={handleCancelBooking}
+            bookingStats={bookingStats}
           />
         } />
       </Routes>

@@ -26,19 +26,43 @@ async function seedDatabase() {
     // Sample data aligned exactly to your mongoose schema properties
     const sampleVenues = [
       {
-        name: 'Grand Cricket Stadium A',
-        sportType: 'Cricket',
-        location: 'Downtown City A',
-        pricePerHour: 150,
-        imageUrl: 'https://images.unsplash.com/photo-1531415074968-036ba1b575da',
+        name: 'Apex Futsal Arena',
+        sportType: 'Futsal',
+        location: 'Gyaneshwor, Kathmandu',
+        pricePerHour: 4500,
+        imageUrl: 'https://images.unsplash.com/photo-1575361204480-aadea25e6e68?w=500&auto=format&fit=crop&q=60',
         availability: true
       },
       {
-        name: 'Indoor Arena B',
-        sportType: 'Futsal',
-        location: 'North Sector City B',
-        pricePerHour: 80,
-        imageUrl: 'https://images.unsplash.com/photo-1517649763962-0c623066013b',
+        name: 'Smash Badminton Club',
+        sportType: 'Badminton',
+        location: 'Chabahil, Kathmandu',
+        pricePerHour: 2000,
+        imageUrl: 'https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?w=500&auto=format&fit=crop&q=60',
+        availability: true
+      },
+      {
+        name: 'Net Rippers Basketball Court',
+        sportType: 'Basketball',
+        location: 'Bouddha, Kathmandu',
+        pricePerHour: 3500,
+        imageUrl: 'https://images.unsplash.com/photo-1544698310-74ea9d1c8258?w=500&auto=format&fit=crop&q=60',
+        availability: true
+      },
+      {
+        name: 'Deuce Tennis Center',
+        sportType: 'Tennis',
+        location: 'Sankhamul, Kathmandu',
+        pricePerHour: 4000,
+        imageUrl: 'https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?w=500&auto=format&fit=crop&q=60',
+        availability: true
+      },
+      {
+        name: 'Olympic Splash Pool',
+        sportType: 'Swimming',
+        location: 'Nagpokhari, Kathmandu',
+        pricePerHour: 5000,
+        imageUrl: 'https://images.unsplash.com/photo-1576013551627-0cc20b96c2a7?w=500&auto=format&fit=crop&q=60',
         availability: true
       }
     ];

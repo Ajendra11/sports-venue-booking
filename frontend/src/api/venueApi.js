@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:3000/api/venues';
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const API_BASE_URL = `${BASE_URL}/api/venues`;
 
 export const getVenues = async () => {
   try {
@@ -40,4 +41,14 @@ export const updateVenue = async (id, venueData) => {
     console.error(`Error updating venue with id ${id}:`, error);
     throw error;
   }
-};  
+};
+
+export const deleteVenue = async (id) => {
+  try {
+    const response = await axios.delete(`${API_BASE_URL}/${id}`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error deleting venue with id ${id}:`, error);
+    throw error;
+  }
+};
