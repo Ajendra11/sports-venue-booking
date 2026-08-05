@@ -29,7 +29,15 @@ app.use(cors({
 app.use(express.json());
 app.use(cookieParser());
 
-// 3. Health & Sample Routes
+// 3. Root, Health & Sample Routes
+app.get('/', (req, res) => {
+  res.status(200).json({
+    status: 'success',
+    message: 'Sports Venue Booking API is running live on Render!',
+    timestamp: new Date()
+  });
+});
+
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok', message: 'Server is healthy', timestamp: new Date() });
 });
