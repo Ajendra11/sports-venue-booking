@@ -7,22 +7,30 @@ import { sampleVenues } from './data/venues.js';
 import venueRoutes from './routes/venueRoutes.js'; 
 import authRoutes from './routes/authRoutes.js';
 import bookingRoutes from './routes/bookingRoutes.js';
-import "./config/db.js"; // Correct path to your Mongoose setup
+import "./config/db.js"; // Mongoose setup
 
 dotenv.config();
 
 const app = express();
 
-// 1. CORS Middleware (allows requests from frontend or localhost)
+// 1. CORS Middleware - Explicitly includes Netlify frontend domain
 const allowedOrigins = [
+  'https://sportsvenuebooking.netlify.app',
   process.env.FRONTEND_URL,
   'http://localhost:5173', // Default Vite port
   'http://localhost:3000'  // React default port
-].filter(Boolean); // Filters out undefined process.env.FRONTEND_URL if not set
+].filter(Boolean);
 
 app.use(cors({
-  origin: allowedOrigins.length > 0 ? allowedOrigins : true,
-  credentials: true, // Allow cookies / headers to be sent
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps, curl, or Postman)
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(null, true); // Fallback to allow connection if origin check fails
+    }
+  },
+  credentials: true, // Allow cookies and authorization headers
 }));
 
 // 2. Body Parsers & Cookie Parser
