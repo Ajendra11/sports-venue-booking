@@ -7,6 +7,7 @@ import { sampleVenues } from './data/venues.js';
 import venueRoutes from './routes/venueRoutes.js'; 
 import authRoutes from './routes/authRoutes.js';
 import bookingRoutes from './routes/bookingRoutes.js';
+import aiRoutes from './routes/aiRoutes.js'; // Import AI routes
 import "./config/db.js"; // Mongoose setup
 
 dotenv.config();
@@ -58,6 +59,7 @@ app.get('/api/sample-venues', (req, res) => {
 app.use('/api/venues', venueRoutes);  
 app.use('/api/auth', authRoutes);
 app.use('/api/bookings', bookingRoutes);
+app.use('/api/ai', aiRoutes); // <--- Registered Groq AI Route here
 
 // 5. 404 Route Handler
 app.use((req, res, next) => {
@@ -80,3 +82,5 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
+
+export default app;
