@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import Auth from '../models/authModel.js';
+import { JWT_SECRET } from '../config/jwt.js';
 
 export const protect = async (req, res, next) => {
   const authHeader = req.headers.authorization;
@@ -13,7 +14,7 @@ export const protect = async (req, res, next) => {
 
   try {
     // Verify JWT
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret');
+    const decoded = jwt.verify(token, JWT_SECRET);
 
     // Find user in MongoDB without returning password
     req.user = await Auth.findById(decoded.id).select('-password');
@@ -28,11 +29,13 @@ export const protect = async (req, res, next) => {
   }
 };
 
-// Admin authorization middleware
+/**
+ * Restricts a route to admin accounts. Always chain after `protect`, which
+ * is what populates req.user.
+ */
 export const adminOnly = (req, res, next) => {
-  if (req.user && req.user.role === 'admin') {
-    next();
-  } else {
-    return res.status(403).json({ error: 'Access denied. Admin privileges required.' });
+  if (req.user?.role === 'admin') {
+    return next();
   }
+  return res.status(403).json({ error: 'Access denied. Admin privileges required.' });
 };

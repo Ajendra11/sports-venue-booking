@@ -1,74 +1,56 @@
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-const API_BASE_URL = `${BASE_URL}/api/auth`;
+import client, { authHeader, toApiError } from './client.js';
 
-export const registerUser = async (name, email, password, phone) => {
+export const registerUser = async (name, email, password, phone, adminCode) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, email, password, phone })
+    const { data } = await client.post('/auth/register', {
+      name,
+      email,
+      password,
+      phone,
+      // Omitted entirely unless supplied — the server rejects an empty code
+      ...(adminCode ? { adminCode } : {}),
     });
-
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data.error || 'Registration failed');
-    }
     return data;
   } catch (error) {
-    console.error('Registration error:', error);
-    throw error;
+    throw toApiError(error, 'Registration failed');
+  }
+};
+
+/** Whether this server accepts an admin signup code (never returns the code). */
+export const getSignupConfig = async () => {
+  try {
+    const { data } = await client.get('/auth/signup-config');
+    return data;
+  } catch {
+    // If the check fails, hide the field rather than showing one that can't work
+    return { adminCodeEnabled: false };
   }
 };
 
 export const loginUser = async (email, password) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
-    });
-
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data.error || 'Login failed');
-    }
+    const { data } = await client.post('/auth/login', { email, password });
     return data;
   } catch (error) {
-    console.error('Login error:', error);
-    throw error;
+    throw toApiError(error, 'Login failed');
   }
 };
 
 export const logoutUser = async () => {
   try {
-    const response = await fetch(`${API_BASE_URL}/logout`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' }
-    });
-    return await response.json();
-  } catch (error) {
-    console.error('Logout error:', error);
+    const { data } = await client.post('/auth/logout');
+    return data;
+  } catch {
+    // Logging out locally must succeed even if the server call fails
+    return null;
   }
 };
 
 export const getMe = async (token) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/me`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      }
-    });
-
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data.error || 'Failed to get user');
-    }
+    const { data } = await client.get('/auth/me', authHeader(token));
     return data;
   } catch (error) {
-    console.error('Get user error:', error);
-    throw error;
+    throw toApiError(error, 'Failed to get user');
   }
 };
-

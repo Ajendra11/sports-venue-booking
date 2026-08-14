@@ -1,99 +1,32 @@
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-const API_BASE_URL = `${BASE_URL}/api/bookings`;
-
-const getHeaders = (token) => ({
-  'Content-Type': 'application/json',
-  'Authorization': `Bearer ${token}`
-});
+import client, { authHeader, toApiError } from './client.js';
 
 export const getMyBookings = async (token) => {
   try {
-    const response = await fetch(API_BASE_URL, {
-      method: 'GET',
-      headers: getHeaders(token)
-    });
-
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data.error || 'Failed to fetch bookings');
-    }
+    const { data } = await client.get('/bookings', authHeader(token));
     return data;
   } catch (error) {
-    console.error('Fetch bookings error:', error);
-    throw error;
-  }
-};
-
-export const getBookingStats = async (token) => {
-  try {
-    const response = await fetch(`${API_BASE_URL}/stats`, {
-      method: 'GET',
-      headers: getHeaders(token)
-    });
-
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data.error || 'Failed to fetch booking statistics');
-    }
-    return data;
-  } catch (error) {
-    console.error('Fetch booking stats error:', error);
-    throw error;
+    throw toApiError(error, 'Failed to fetch bookings');
   }
 };
 
 export const createBooking = async (token, bookingData) => {
   try {
-    const response = await fetch(API_BASE_URL, {
-      method: 'POST',
-      headers: getHeaders(token),
-      body: JSON.stringify(bookingData)
-    });
-
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data.error || 'Failed to create booking');
-    }
+    const { data } = await client.post('/bookings', bookingData, authHeader(token));
     return data;
   } catch (error) {
-    console.error('Create booking error:', error);
-    throw error;
+    throw toApiError(error, 'Failed to create booking');
   }
 };
 
+/**
+ * Cancel a booking via DELETE /api/bookings/:id, per the Week 3 spec.
+ * Removing the record also frees its slots for other users.
+ */
 export const cancelBooking = async (token, bookingId) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/${bookingId}/cancel`, {
-      method: 'PUT',
-      headers: getHeaders(token)
-    });
-
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data.error || 'Failed to cancel booking');
-    }
+    const { data } = await client.delete(`/bookings/${bookingId}`, authHeader(token));
     return data;
   } catch (error) {
-    console.error('Cancel booking error:', error);
-    throw error;
+    throw toApiError(error, 'Failed to cancel booking');
   }
 };
-
-export const deleteBooking = async (token, bookingId) => {
-  try {
-    const response = await fetch(`${API_BASE_URL}/${bookingId}`, {
-      method: 'DELETE',
-      headers: getHeaders(token)
-    });
-
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data.error || 'Failed to delete booking');
-    }
-    return data;
-  } catch (error) {
-    console.error('Delete booking error:', error);
-    throw error;
-  }
-};
-

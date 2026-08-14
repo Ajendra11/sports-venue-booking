@@ -12,6 +12,15 @@ dist
 dist-ssr
 *.local
 
+# Build caches
+.vite/
+.cache/
+
+# Environment files — never commit real secrets. Templates are tracked.
+.env
+.env.*
+!.env.example
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

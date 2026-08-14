@@ -1,11 +1,11 @@
 import jwt from 'jsonwebtoken';
 import Auth from '../models/authModel.js';
+import { JWT_SECRET, JWT_EXPIRES_IN } from '../config/jwt.js';
+import { checkAdminCode, isAdminCodeEnabled } from '../config/adminCode.js';
 
 // Helper to generate JWT token
 const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET || 'fallback_secret', {
-    expiresIn: '30d',
-  });
+  return jwt.sign({ id }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
 };
 
 // Helper to send token response with JSON and Cookie
@@ -36,7 +36,7 @@ const sendTokenResponse = (user, statusCode, res) => {
 // @route   POST /api/auth/register
 export const registerUser = async (req, res) => {
   try {
-    const { name, email, password, phone } = req.body;
+    const { name, email, password, phone, adminCode } = req.body;
 
     // Check if user already exists
     const existingUser = await Auth.findOne({ email });
@@ -44,12 +44,42 @@ export const registerUser = async (req, res) => {
       return res.status(400).json({ error: 'User already exists with this email' });
     }
 
-    // Create new user
-    const user = await Auth.create({ name, email, password, phone });
+    // Role is never taken from the request body. The only way to register as
+    // an admin is to present the server-side signup code.
+    let role = 'user';
+
+    if (adminCode) {
+      const result = checkAdminCode(adminCode, req.ip);
+
+      if (result === 'throttled') {
+        return res.status(429).json({
+          error: 'Too many incorrect admin codes. Please try again in 15 minutes.'
+        });
+      }
+      if (result === 'disabled') {
+        return res.status(400).json({
+          error: 'Admin registration is not enabled on this server.'
+        });
+      }
+      if (result === 'invalid') {
+        return res.status(400).json({ error: 'That admin code is not valid.' });
+      }
+
+      role = 'admin';
+    }
+
+    const user = await Auth.create({ name, email, password, phone, role });
     sendTokenResponse(user, 201, res);
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
+};
+
+// @desc    Whether this server accepts an admin signup code
+// @route   GET /api/auth/signup-config
+export const getSignupConfig = (req, res) => {
+  // Only reports that the field exists — never the code itself
+  res.json({ adminCodeEnabled: isAdminCodeEnabled() });
 };
 
 // @desc    Login user

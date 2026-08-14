@@ -1,54 +1,56 @@
-import axios from 'axios';
-
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-const API_BASE_URL = `${BASE_URL}/api/venues`;
+import client, { authHeader, toApiError } from './client.js';
 
 export const getVenues = async () => {
   try {
-    const response = await axios.get(API_BASE_URL);
-    return response.data;
+    const { data } = await client.get('/venues');
+    return data;
   } catch (error) {
-    console.error('Error fetching venues:', error);
-    throw error;
+    throw toApiError(error, 'Failed to load venues');
   }
 };
 
 export const getVenueById = async (id) => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/${id}`);
-    return response.data;
+    const { data } = await client.get(`/venues/${id}`);
+    return data;
   } catch (error) {
-    console.error(`Error fetching venue with id ${id}:`, error);
-    throw error;
+    throw toApiError(error, 'Failed to load venue');
   }
 };
 
-export const createVenue = async (venueData) => {
+/** Hourly slot availability for a venue on a given YYYY-MM-DD date. */
+export const getVenueAvailability = async (id, date) => {
   try {
-    const response = await axios.post(API_BASE_URL, venueData);
-    return response.data;
+    const { data } = await client.get(`/venues/${id}/availability`, { params: { date } });
+    return data;
   } catch (error) {
-    console.error('Error creating venue:', error);
-    throw error;
+    throw toApiError(error, 'Failed to load availability');
   }
 };
 
-export const updateVenue = async (id, venueData) => {
+export const createVenue = async (token, venueData) => {
   try {
-    const response = await axios.put(`${API_BASE_URL}/${id}`, venueData);
-    return response.data;
+    const { data } = await client.post('/venues', venueData, authHeader(token));
+    return data;
   } catch (error) {
-    console.error(`Error updating venue with id ${id}:`, error);
-    throw error;
+    throw toApiError(error, 'Failed to create venue');
   }
 };
 
-export const deleteVenue = async (id) => {
+export const updateVenue = async (token, id, venueData) => {
   try {
-    const response = await axios.delete(`${API_BASE_URL}/${id}`);
-    return response.data;
+    const { data } = await client.put(`/venues/${id}`, venueData, authHeader(token));
+    return data;
   } catch (error) {
-    console.error(`Error deleting venue with id ${id}:`, error);
-    throw error;
+    throw toApiError(error, 'Failed to update venue');
+  }
+};
+
+export const deleteVenue = async (token, id) => {
+  try {
+    const { data } = await client.delete(`/venues/${id}`, authHeader(token));
+    return data;
+  } catch (error) {
+    throw toApiError(error, 'Failed to delete venue');
   }
 };

@@ -2,11 +2,12 @@ import mongoose from 'mongoose';
 
 // 1. Define the structural blueprint for a venue document in MongoDB
 const venueSchema = new mongoose.Schema({
-  name: { type: String, required: true },
-  sportType: { type: String, required: true },
-  location: { type: String, required: true },
-  pricePerHour: { type: Number, required: true },
-  imageUrl: { type: String },
+  name: { type: String, required: true, trim: true },
+  sportType: { type: String, required: true, trim: true },
+  location: { type: String, required: true, trim: true },
+  pricePerHour: { type: Number, required: true, min: 0 },
+  facilities: { type: [String], default: [] },
+  imageUrl: { type: String, trim: true },
   availability: { type: Boolean, default: true }
 }, { timestamps: true });
 
