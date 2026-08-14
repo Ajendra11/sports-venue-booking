@@ -1,3 +1,4 @@
+import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
@@ -16,7 +17,20 @@ import dotenv from 'dotenv';
  */
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-dotenv.config({ path: path.join(__dirname, '..', '.env'), quiet: true });
+// Candidate locations, in priority order. Real environment variables always
+// win — dotenv never overwrites something already set — so this only fills
+// gaps. /etc/secrets/.env is where Render mounts an uploaded Secret File,
+// which is a very easy thing to reach for when you already have a .env.
+const ENV_FILES = [
+  path.join(__dirname, '..', '.env'),
+  '/etc/secrets/.env',
+];
+
+for (const file of ENV_FILES) {
+  if (fs.existsSync(file)) {
+    dotenv.config({ path: file, quiet: true });
+  }
+}
 
 // Hosted platforms inject config as real environment variables and have no
 // .env file on disk, so the "go edit .env" advice would send you chasing a

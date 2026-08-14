@@ -2,3 +2,16 @@
   base = "frontend"
   command = "npm run build"
   publish = "dist"
+
+[build.environment]
+  # Vite 8 requires Node 20.19+; pin so Netlify's default can't drift under us.
+  NODE_VERSION = "22"
+
+# Single-page app fallback. React Router owns /admin, /venues/:id, /my-bookings
+# and friends — those paths have no file on disk, so without this rule a direct
+# visit or a refresh returns Netlify's 404 instead of the app.
+# Must stay last: redirect rules are evaluated in order, and this matches everything.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
